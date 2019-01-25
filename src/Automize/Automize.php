@@ -3,7 +3,7 @@ namespace Zenderator\Automize;
 
 use CLIOpts\CLIOpts;
 use PhpSchool\CliMenu\CliMenu;
-use PhpSchool\CliMenu\CliMenuBuilder;
+use PhpSchool\CliMenu\Builder\CliMenuBuilder;
 use PhpSchool\CliMenu\MenuItem\AsciiArtItem;
 use PhpSchool\CliMenu\MenuItem\SelectableItem;
 use Zenderator\Zenderator;
@@ -20,13 +20,47 @@ class Automize
     private $automizeInstanceName;
     /** @var SelectableItem[] */
     private $applicationSpecificMenuItems;
-    
-    public function __construct(Zenderator $zenderator = null, $sdkOutputPath)
+
+    private $rootOfApp;
+
+
+    private $_defaultConfig = [
+        "colour" => [
+            "foreground" => "15",
+            "background" => "159",
+        ],
+        "logoPath" => "/vendor/gone.io/automize/assets/logo.ascii",
+    ];
+    private $config;
+
+    public function __construct(Zenderator $zenderator = null, $sdkOutputPath, $rootOfApp)
     {
         $this->zenderator    = $zenderator;
         $this->sdkOutputPath = $sdkOutputPath;
 
-        $this->automizeInstanceName = 'Gone.io Automizer - ' . APP_NAME;
+        $this->automizeInstanceName = 'Automizer - ' . APP_NAME;
+        
+        $this->setup($rootOfApp);
+    }
+
+    private function setup($rootOfApp) {
+        $this->rootOfApp = $rootOfApp;
+        $this->config = $this->getConfig($rootOfApp);
+    }
+
+    public function getConfig($rootOfApp){
+        if (file_exists($rootOfApp . "/zenderator.yml")) {
+            $configPath = $rootOfApp . "/zenderator.yml";
+        } elseif (file_exists($rootOfApp . "/zenderator.yml.dist")) {
+            $configPath = $rootOfApp . "/zenderator.yml.dist";
+        } else {
+            die("Missing Zenderator config /zenderator.yml or /zenderator.yml.dist\nThere is an example in /vendor/bin/segura/zenderator/zenderator.example.yml\n\n");
+        }
+        $config = file_get_contents($configPath);
+        $config = \Symfony\Component\Yaml\Yaml::parse($config);
+        $config = $config["automize"] ?? [];
+        $config = array_replace_recursive($this->_defaultConfig,$config);
+        return $config;
     }
 
     private function vpnCheck()
@@ -57,10 +91,10 @@ class Automize
         $appScopeBits                         = explode('\\', APP_CORE_NAME);
         $appScope                             = implode('\\', array_slice($appScopeBits, 0, -1));
         $applicationSpecificCommandsLocations =
-        [
-            $appScope        => APP_ROOT . "/src/Commands",
-            'Gone\AppCore' => APPCORE_ROOT . "/src/Commands",
-        ];
+            [
+                $appScope        => APP_ROOT . "/src/Commands",
+                'Gone\AppCore' => APPCORE_ROOT . "/src/Commands",
+            ];
 
         foreach ($applicationSpecificCommandsLocations as $appNamespace => $applicationSpecificCommandsLocation) {
             if (file_exists($applicationSpecificCommandsLocation)) {
@@ -87,11 +121,13 @@ class Automize
     {
         $scope      = $this;
         $this->menu = new CliMenuBuilder();
-        $this->menu->setBackgroundColour('red');
-        $this->menu->setForegroundColour('white');
+        $this->menu->setBackgroundColour($this->config["colour"]["background"]);
+        $this->menu->setForegroundColour($this->config["colour"]["foreground"]);
         $this->menu->setTitle($this->automizeInstanceName);
-        $this->menu->addAsciiArt(file_get_contents(__DIR__ . "/../../assets/logo.ascii"), AsciiArtItem::POSITION_LEFT);
-        $this->menu->addLineBreak('-');
+        if(file_exists($this->rootOfApp . "/" . $this->config["logoPath"])) {
+            $this->menu->addAsciiArt(file_get_contents($this->rootOfApp . "/" . $this->config["logoPath"]), AsciiArtItem::POSITION_CENTER);
+            $this->menu->addLineBreak('-');
+        }
 
         $this->menu->addItem('Run Zenderator', function (CliMenu $menu) use ($scope) {
             /** @var Automize $scope */
@@ -123,50 +159,53 @@ class Automize
         });
         if (count($this->applicationSpecificMenuItems)) {
             $this->menu->addLineBreak('-');
-            $customCommandsSubMenu = $this->menu->addSubMenu(APP_NAME . " Custom Commands");
-            $customCommandsSubMenu->setTitle(APP_NAME . " Custom Commands");
-            foreach ($this->applicationSpecificMenuItems as $menuItem) {
-                $customCommandsSubMenu->addMenuItem($menuItem);
-            }
-            $customCommandsSubMenu->addLineBreak('-');
-            $customCommandsSubMenu->end();
+            $menuItems = $this->applicationSpecificMenuItems;
+            $this->menu->addSubMenu(APP_NAME . " Custom Commands", function(CliMenuBuilder $subMenu) use ($menuItems){
+                $subMenu->setTitle(APP_NAME . " Custom Commands");
+                foreach ($menuItems as $menuItem) {
+                    $subMenu->addMenuItem($menuItem);
+                }
+                $subMenu->addLineBreak('-');
+                //$subMenu->end();
+            });
         }
         $this->menu->addLineBreak('-');
-        $testSubMenu = $this->menu->addSubMenu('Tests');
-        $testSubMenu->setTitle($this->automizeInstanceName . ' > Tests');
-        $testSubMenu->addItem('Run Tests without Coverage (fast)', function (CliMenu $menu) use ($scope) {
-            /** @var Automize $scope */
-            $scope->zenderator
-                ->runTests(false)
-                ->waitForKeypress();
-            $menu->redraw();
+        $this->menu->addSubMenu('Tests',function(CliMenuBuilder $testSubMenu) use($scope) {
+            $testSubMenu->setTitle($this->automizeInstanceName . ' > Tests');
+            $testSubMenu->addItem('Run Tests without Coverage (fast)', function (CliMenu $menu) use ($scope) {
+                /** @var Automize $scope */
+                $scope->zenderator
+                    ->runTests(false)
+                    ->waitForKeypress();
+                $menu->redraw();
+            });
+            $testSubMenu->addItem('Run Tests with Coverage (slow)', function (CliMenu $menu) use ($scope) {
+                /** @var Automize $scope */
+                $scope->zenderator
+                    ->runTests(true)
+                    ->waitForKeypress();
+                $menu->redraw();
+            });
+            $testSubMenu->addItem('Run Tests but Stop on Failure/Error', function (CliMenu $menu) use ($scope) {
+                /** @var Automize $scope */
+                $scope->zenderator
+                    ->runTests(true, true)
+                    ->waitForKeypress();
+                $menu->redraw();
+            });
         });
-        $testSubMenu->addItem('Run Tests with Coverage (slow)', function (CliMenu $menu) use ($scope) {
-            /** @var Automize $scope */
-            $scope->zenderator
-                ->runTests(true)
-                ->waitForKeypress();
-            $menu->redraw();
-        });
-        $testSubMenu->addItem('Run Tests but Stop on Failure/Error', function (CliMenu $menu) use ($scope) {
-            /** @var Automize $scope */
-            $scope->zenderator
-                ->runTests(true, true)
-                ->waitForKeypress();
-            $menu->redraw();
-        });
-        $testSubMenu->end();
         $this->menu->addLineBreak('-');
-        $composerSubMenu = $this->menu->addSubMenu('Composer');
-        $composerSubMenu->setTitle($this->automizeInstanceName . ' > Composer');
-        $composerSubMenu->addItem('Rebuild Composer Autoloader', function (CliMenu $menu) use ($scope) {
-            /** @var Automize $scope */
-            $scope->zenderator
-                ->cleanCodeComposerAutoloader()
-                ->waitForKeypress();
-            $menu->redraw();
+        $this->menu->addSubMenu('Composer', function($composerSubMenu) use ($scope) {
+            $composerSubMenu->setTitle($this->automizeInstanceName . ' > Composer');
+            $composerSubMenu->addItem('Rebuild Composer Autoloader', function (CliMenu $menu) use ($scope) {
+                /** @var Automize $scope */
+                $scope->zenderator
+                    ->cleanCodeComposerAutoloader()
+                    ->waitForKeypress();
+                $menu->redraw();
+            });
         });
-        $composerSubMenu->end();
+
         $this->menu->addItem('Run Clean', function (CliMenu $menu) use ($scope) {
             /** @var Automize $scope */
             $scope->zenderator
@@ -178,7 +217,7 @@ class Automize
         $this->menu->addLineBreak('-');
         $this->menu = $this->menu->build();
     }
-    
+
     public function run()
     {
         $this->getApplicationSpecificMenuItems();

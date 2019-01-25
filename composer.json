@@ -7,6 +7,9 @@
     },{
       "name": "Segura Systems",
       "email": "support@segura.co.uk"
+    },{
+      "name": "Wolfgang von Caron",
+      "email": "wolfgang@wlf.io"
     }
   ],
   "bin": [
@@ -14,8 +17,8 @@
   ],
   "require": {
     "php": "^7.1",
-    "gone.io/appcore": "*",
-    "php-school/cli-menu": "^2.0.0",
+    "gone.io/appcore": "dev-master",
+    "php-school/cli-menu": "^3.0.0",
     "kint-php/kint": "^2.0",
     "mattketmo/camel": "^1.1",
     "gone.io/inflection": "^2.0",
