@@ -43,12 +43,14 @@ class Automize
         $this->setup($rootOfApp);
     }
 
-    private function setup($rootOfApp) {
+    private function setup($rootOfApp)
+    {
         $this->rootOfApp = $rootOfApp;
         $this->config = $this->getConfig($rootOfApp);
     }
 
-    public function getConfig($rootOfApp){
+    public function getConfig($rootOfApp)
+    {
         if (file_exists($rootOfApp . "/zenderator.yml")) {
             $configPath = $rootOfApp . "/zenderator.yml";
         } elseif (file_exists($rootOfApp . "/zenderator.yml.dist")) {
@@ -59,7 +61,7 @@ class Automize
         $config = file_get_contents($configPath);
         $config = \Symfony\Component\Yaml\Yaml::parse($config);
         $config = $config["automize"] ?? [];
-        $config = array_replace_recursive($this->_defaultConfig,$config);
+        $config = array_replace_recursive($this->_defaultConfig, $config);
         return $config;
     }
 
@@ -116,7 +118,7 @@ class Automize
         $this->menu->setBackgroundColour($this->config["colour"]["background"]);
         $this->menu->setForegroundColour($this->config["colour"]["foreground"]);
         $this->menu->setTitle($this->automizeInstanceName);
-        if(file_exists($this->rootOfApp . "/" . $this->config["logoPath"])) {
+        if (file_exists($this->rootOfApp . "/" . $this->config["logoPath"])) {
             $this->menu->addAsciiArt(file_get_contents($this->rootOfApp . "/" . $this->config["logoPath"]), AsciiArtItem::POSITION_CENTER);
             $this->menu->addLineBreak('-');
         }
@@ -152,7 +154,7 @@ class Automize
         if (count($this->applicationSpecificMenuItems)) {
             $this->menu->addLineBreak('-');
             $menuItems = $this->applicationSpecificMenuItems;
-            $this->menu->addSubMenu(APP_NAME . " Custom Commands", function(CliMenuBuilder $subMenu) use ($menuItems){
+            $this->menu->addSubMenu(APP_NAME . " Custom Commands", function (CliMenuBuilder $subMenu) use ($menuItems) {
                 $subMenu->setTitle(APP_NAME . " Custom Commands");
                 foreach ($menuItems as $menuItem) {
                     $subMenu->addMenuItem($menuItem);
@@ -162,7 +164,7 @@ class Automize
             });
         }
         $this->menu->addLineBreak('-');
-        $this->menu->addSubMenu('Tests',function(CliMenuBuilder $testSubMenu) use($scope) {
+        $this->menu->addSubMenu('Tests', function (CliMenuBuilder $testSubMenu) use ($scope) {
             $testSubMenu->setTitle($this->automizeInstanceName . ' > Tests');
             $testSubMenu->addItem('Run Tests without Coverage (fast)', function (CliMenu $menu) use ($scope) {
                 /** @var Automize $scope */
@@ -187,7 +189,7 @@ class Automize
             });
         });
         $this->menu->addLineBreak('-');
-        $this->menu->addSubMenu('Composer', function($composerSubMenu) use ($scope) {
+        $this->menu->addSubMenu('Composer', function ($composerSubMenu) use ($scope) {
             $composerSubMenu->setTitle($this->automizeInstanceName . ' > Composer');
             $composerSubMenu->addItem('Rebuild Composer Autoloader', function (CliMenu $menu) use ($scope) {
                 /** @var Automize $scope */
@@ -229,7 +231,7 @@ class Automize
 
     private function runNonInteractive()
     {
-        if($this->zenderator) {
+        if ($this->zenderator) {
             $this->zenderator->disableWaitForKeypress();
         }
         $values = $this->checkForArguments();
@@ -237,28 +239,28 @@ class Automize
         foreach ($values as $name => $value) {
             switch ($name) {
                 case 'zenderator':
-                    if(!$this->zenderator){
+                    if (!$this->zenderator) {
                         echo "Cannot run {$name}, Zenderator is not installed.\n";
                         break;
                     }
                     $this->zenderator->makeZenderator();
                     break;
                 case 'clean':
-                    if(!$this->zenderator){
+                    if (!$this->zenderator) {
                         echo "Cannot run {$name}, Zenderator is not installed.\n";
                         break;
                     }
                     $this->zenderator->cleanCodePHPCSFixer();
                     break;
                 case 'composer-optimise':
-                    if(!$this->zenderator){
+                    if (!$this->zenderator) {
                         echo "Cannot run {$name}, Zenderator is not installed.\n";
                         break;
                     }
                     $this->zenderator->cleanCodeComposerAutoloader();
                     break;
                 case 'sdk':
-                    if(!$this->zenderator){
+                    if (!$this->zenderator) {
                         echo "Cannot run {$name}, Zenderator is not installed.\n";
                         break;
                     }
@@ -267,7 +269,7 @@ class Automize
                 case 'tests':
                 case 'tests-coverage':
                 case 'tests-debug':
-                    if(!$this->zenderator){
+                    if (!$this->zenderator) {
                         echo "Cannot run {$name}, Zenderator is not installed.\n";
                         break;
                     }
@@ -279,7 +281,7 @@ class Automize
                     );
                     break;
                 case 'matt-mode':
-                    if(!$this->zenderator){
+                    if (!$this->zenderator) {
                         echo "Cannot run {$name}, Zenderator is not installed.\n";
                         break;
                     }
