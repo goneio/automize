@@ -54,21 +54,13 @@ class Automize
         } elseif (file_exists($rootOfApp . "/zenderator.yml.dist")) {
             $configPath = $rootOfApp . "/zenderator.yml.dist";
         } else {
-            die("Missing Zenderator config /zenderator.yml or /zenderator.yml.dist\nThere is an example in /vendor/bin/segura/zenderator/zenderator.example.yml\n\n");
+            die("Missing Zenderator config /zenderator.yml or /zenderator.yml.dist\nThere is an example in ./vendor/gone.io/zenderator/zenderator.example.yml\n\n");
         }
         $config = file_get_contents($configPath);
         $config = \Symfony\Component\Yaml\Yaml::parse($config);
         $config = $config["automize"] ?? [];
         $config = array_replace_recursive($this->_defaultConfig,$config);
         return $config;
-    }
-
-    private function vpnCheck()
-    {
-        if (!$this->zenderator->vpnCheck()) {
-            echo "WARNING! You're not connected to the VPN!\n";
-            $this->zenderator->waitForKeypress();
-        }
     }
 
     private function getApplicationSpecificMenuItems()
@@ -221,7 +213,6 @@ class Automize
     public function run()
     {
         $this->getApplicationSpecificMenuItems();
-        #$this->vpnCheck();
         $values = $this->checkForArguments();
         if ($values->count()) {
             $this->runNonInteractive();
