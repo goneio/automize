@@ -2,8 +2,8 @@
 namespace Zenderator\Automize;
 
 use CLIOpts\CLIOpts;
-use PhpSchool\CliMenu\CliMenu;
 use PhpSchool\CliMenu\Builder\CliMenuBuilder;
+use PhpSchool\CliMenu\CliMenu;
 use PhpSchool\CliMenu\MenuItem\AsciiArtItem;
 use PhpSchool\CliMenu\MenuItem\SelectableItem;
 use Zenderator\Zenderator;
@@ -63,6 +63,17 @@ class Automize
         $config = $config["automize"] ?? [];
         $config = array_replace_recursive($this->_defaultConfig, $config);
         return $config;
+    }
+
+    public function run()
+    {
+        $this->getApplicationSpecificMenuItems();
+        $values = $this->checkForArguments();
+        if ($values->count()) {
+            $this->runNonInteractive();
+        } else {
+            $this->runInteractive();
+        }
     }
 
     private function getApplicationSpecificMenuItems()
@@ -212,17 +223,6 @@ class Automize
         $this->menu = $this->menu->build();
     }
 
-    public function run()
-    {
-        $this->getApplicationSpecificMenuItems();
-        $values = $this->checkForArguments();
-        if ($values->count()) {
-            $this->runNonInteractive();
-        } else {
-            $this->runInteractive();
-        }
-    }
-
     private function runInteractive()
     {
         $this->buildMenu();
@@ -276,7 +276,7 @@ class Automize
                     $this->zenderator->runTests(
                         $values->offsetExists('tests-coverage'),
                         $values->offsetExists('tests-stop-on-error'),
-                        $values->offsetExists('tests-suite') ? $values->offsetGet('tests-suite') : '',
+                        $values->offsetExists('testsuite') ? $values->offsetGet('testsuite') : '',
                         $values->offsetExists('tests-debug')
                     );
                     break;
@@ -322,6 +322,7 @@ class Automize
             -t --tests Run tests
             -T --tests-coverage Run tests with coverage
             -x --tests-stop-on-error Stop tests on Errors or Failures
+            --testsuite <testsuite> Run a specific testsuite.
             --tests-debug run tests with debug flag
             --sleep <seconds> Sleep for time defined in seconds
             ";
